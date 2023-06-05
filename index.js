@@ -2,16 +2,13 @@ const inquirer = require("inquirer");
 const mysql = require("mysql2");
 require('dotenv').config();
 
-// Import connection to the database
-const sequelize = require('config\connection.js');
-
 // create a MySQL connection
 const connection = mysql.createConnection({
   host: "localhost",
   port: 3306,
-  user: sequelize.process.env.DB_USER,
-  password: sequelize.process.env.DB_PASSWORD,
-  database: sequelize.process.env.DB_NAME,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME,
 });
 
 // connect to the database
@@ -22,93 +19,119 @@ connection.connect((err) => {
   start();
 });
 
+// Function to view all employees
+function viewAllEmployees() {
+  connection.query("SELECT id, first_name, last_name, role_id, manager_id FROM employee", function (err, res) {
+    if (err) throw err;
+    console.table(res);
+    loadMainPrompts();
+  });
+}
+
+// Function for adding a new employee when selection option 2
+function addEmployee() {
+  inquirer
+    .prompt([
+      {
+        type: "input",
+        name: "first_name",
+        message: "What is the employee's first name?",
+      },
+      {
+        type: "input",
+        name: "last_name",
+        message: "What is the employee's last name?",
+      },
+      {
+        type: "input",
+        name: "role_id",
+        message: "What is the employee's role ID?",
+      },
+      {
+        type: "input",
+        name: "manager_id",
+        message: "What is the employee's manager ID?",
+      },
+    ])
+    .then((res) => {
+      connection.query(
+        "INSERT INTO employee SET ?",
+        {
+          first_name: res.first_name,
+          last_name: res.last_name,
+          role_id: res.role_id,
+          manager_id: res.manager_id,
+        },
+        function (err, res) {
+          if (err) throw err;
+          console.log("Employee added!");
+          loadMainPrompts();
+        }
+      );
+    });
+}
+
 // Function to load the main prompts
 function loadMainPrompts() {
-  inquirer.
-    prompt([
+  inquirer
+    .prompt([
       {
         type: "list",
         name: "action",
         message: "What would you like to do?",
         choices: [
-          {
-            name: "View all employees",
-            value: viewAllEmployees(),
-          },
-          {
-            name: "Add employee",
-            value: "/*function for option 2*/"
-          },
-          {
-            name: "Update employee Role",
-            value: "/*function for option 3*/"
-          },
-          {
-            name: "View all roles",
-            value: "/*function for option 4*/"
-          },
-          {
-            name: "Add role",
-            value: "/*function for option 5*/"
-          },
-          {
-            name: "View all departments",
-            value: "/*function for option 6*/"
-          },
-          {
-            name: "Add department",
-            value: "/*function for option 7*/"
-          },
-          {
-            name: "Quit",
-            value: "quit"
-          }
-        ]
+          "View all employees",
+          "Add employee",
+          "Update employee Role",
+          "View all roles",
+          "Add role",
+          "View all departments",
+          "Add department",
+          "Quit",
+        ],
+      },
+    ])
+    .then((res) => {
+      let choice = res.action;
+      // Call the appropriate function depending on what the user chose
+      switch (choice) {
+        case "View all employees":
+          viewAllEmployees();
+          break;
+        case "Add employee":
+          addEmployee();
+          break;
+        case "Update employee Role":
+          /*function for option 3*/ ;
+          break;
+        case "View all roles":
+          /*function for option 4*/ ;
+          break;
+        case "Add role":
+          /*function for option 5*/ ;
+          break;
+        case "View all departments":
+          /*function for option 6*/ ;
+          break;
+        case "Add department":
+          /*function for option 7*/ ;
+          break;
+        case "Quit":
+          quit();
+          break;
+        default:
+          console.log("Invalid choice.");
       }
-    ]).then(res => {
-    let choice = res.choice;
-    // Call the appropriate function depending on what the user chose
-    switch (choice) {
-      case "View all employees":
-        // Function to view all employees
-        function viewAllEmployees() {
-          connection.query("SELECT * FROM employee", function (err, res) {
-            if (err) throw err;
-            console.table(res);
-            loadMainPrompts();
-          });
-        }
-        // Excecute the function
-        
-        break;
-      case "Add employee":
-        /*function for option 2*/;
-        break;
-      case "Update employee Role":
-        /*function for option 3*/;
-        break;
-      case "View all roles":
-        /*function for option 4*/;
-        break;
-      case "Add role":
-        /*function for option 5*/;
-        break;
-      case "View all departments":
-        /*function for option 6*/;
-        break;
-      case "Add department":
-        /*function for option 7*/;
-        break;
-      default:
-        // FUCNTION TO QUIT
-        function quit() {
-          connection.end();
-          process.exit();
-        }
-        quit();
-    }
-  }
-  )
+    });
 }
 
-loadMainPrompts();
+// Function to quit the application
+function quit() {
+  connection.end();
+  process.exit();
+}
+
+// Function to start the application
+function start() {
+  loadMainPrompts();
+}

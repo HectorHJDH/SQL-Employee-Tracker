@@ -19,16 +19,20 @@ connection.connect((err) => {
   start();
 });
 
-// Function to view all employees
+// OPTION 1 - Function to view all employees
 function viewAllEmployees() {
-  connection.query("SELECT id, first_name, last_name, role_id, manager_id FROM employee", function (err, res) {
-    if (err) throw err;
-    console.table(res);
-    loadMainPrompts();
-  });
+  // Join another table to get the role title, department name, salary and manager name
+  connection.query(
+    "SELECT employee.id, employee.first_name, employee.last_name, role.title, department.department_name, role.salary, CONCAT(manager.first_name, ' ', manager.last_name) AS manager FROM employee LEFT JOIN role ON employee.role_id = role.id LEFT JOIN department ON role.department_id = department.id LEFT JOIN employee manager ON manager.id = employee.manager_id",
+    function (err, res) {
+      if (err) throw err;
+      console.table(res);
+      loadMainPrompts();
+    }
+  );
 }
 
-// Function for adding a new employee when selection option 2
+// OPTION 2 - Function for adding a new employee
 function addEmployee() {
   inquirer
     .prompt([
@@ -71,6 +75,87 @@ function addEmployee() {
     });
 }
 
+// Function for updating an employee's by selecting the employee first name appended to last name and then assing the employee to a department 
+function updateEmployeeRole() {
+  connection.query("SELECT * FROM employee", function (err, res) {
+    if (err) throw err;
+    inquirer
+      .prompt([
+        {
+          type: "list",
+          name: "employee",
+          message: "Which employee would you like to update?",
+          choices: function () {
+            let employeeArray = [];
+            for (let i = 0; i < res.length; i++) {
+              employeeArray.push(res[i].first_name + " " + res[i].last_name);
+            }
+            return employeeArray;
+          },
+        },
+      ])
+      .then((res) => {
+        let employeeName = res.employee;
+        connection.query("SELECT * FROM role", function (err, res) {
+          if (err) throw err;
+          inquirer
+            .prompt([
+              {
+                type: "list",
+                name: "role",
+                message: "What is the employee's new role?",
+                choices: function () {
+                  let roleArray = [];
+                  for (let i = 0; i < res.length; i++) {
+                    roleArray.push({
+                      name: res[i].title,
+                      value: res[i].id, // Use role ID as the value
+                    });
+                  }
+                  return roleArray;
+                },
+              },
+            ])
+            .then((res) => {
+              let newRoleId = res.role;
+              connection.query(
+                "UPDATE employee SET role_id = ? WHERE CONCAT(first_name, ' ', last_name) = ?",
+                [newRoleId, employeeName],
+                function (err, res) {
+                  if (err) throw err;
+                  console.log("Employee role updated!");
+                  loadMainPrompts();
+                }
+              );
+            });
+        });
+      });
+  });
+}
+
+
+
+//Function for viewing id, title, department name and salary 
+function viewAllRoles() {
+  connection.query(
+    "SELECT role.id, role.title, department.department_name, role.salary FROM role LEFT JOIN department ON role.department_id = department.id",
+    function (err, res) {
+      if (err) throw err;
+      console.table(res);
+      loadMainPrompts();
+    }
+  );
+}
+
+// Function to view all department names
+function viewAllDepartments() {
+  connection.query("SELECT * FROM department", function (err, res) {
+    if (err) throw err;
+    console.table(res);
+    loadMainPrompts();
+  });
+}
+
 // Function to load the main prompts
 function loadMainPrompts() {
   inquirer
@@ -102,16 +187,16 @@ function loadMainPrompts() {
           addEmployee();
           break;
         case "Update employee Role":
-          /*function for option 3*/ ;
+          updateEmployeeRole();
           break;
         case "View all roles":
-          /*function for option 4*/ ;
+          viewAllRoles();
           break;
         case "Add role":
           /*function for option 5*/ ;
           break;
         case "View all departments":
-          /*function for option 6*/ ;
+          viewAllDepartments();
           break;
         case "Add department":
           /*function for option 7*/ ;

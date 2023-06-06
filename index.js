@@ -46,15 +46,47 @@ function addEmployee() {
         name: "last_name",
         message: "What is the employee's last name?",
       },
+      // Select the role name from the role table and use it as the value
       {
-        type: "input",
+        type: "list",
         name: "role_id",
-        message: "What is the employee's role ID?",
+        message: "What is the employee's role?",
+        choices: function () {
+          return new Promise((resolve, reject) => {
+            connection.query("SELECT * FROM role", function (err, res) {
+              if (err) {
+                reject(err);
+              } else {
+                let roleArray = res.map((role) => ({
+                  name: role.title,
+                  value: role.id,
+                }));
+                resolve(roleArray);
+              }
+            });
+          });
+        }
       },
+      // Select the manager name from the employee table and use it as the value
       {
-        type: "input",
+        type: "list",
         name: "manager_id",
-        message: "What is the employee's manager ID?",
+        message: "Who is the employee's manager?",
+        choices: function () {
+          return new Promise((resolve, reject) => {
+            connection.query("SELECT * FROM employee", function (err, res) {
+              if (err) {
+                reject(err);
+              } else {
+                let managerArray = res.map((employee) => ({
+                  name: employee.first_name + " " + employee.last_name,
+                  value: employee.id,
+                }));
+                resolve(managerArray);
+              }
+            });
+          });
+        }
       },
     ])
     .then((res) => {
@@ -75,7 +107,7 @@ function addEmployee() {
     });
 }
 
-// Function for updating an employee's by selecting the employee first name appended to last name and then assing the employee to a department 
+// OPTION 3 - Function for updating an employee's by selecting the employee first name appended to last name and then assing the employee to a department 
 function updateEmployeeRole() {
   connection.query("SELECT * FROM employee", function (err, res) {
     if (err) throw err;
@@ -133,9 +165,7 @@ function updateEmployeeRole() {
   });
 }
 
-
-
-//Function for viewing id, title, department name and salary 
+// OPTION 4 - Function for viewing id, title, department name and salary 
 function viewAllRoles() {
   connection.query(
     "SELECT role.id, role.title, department.department_name, role.salary FROM role LEFT JOIN department ON role.department_id = department.id",
@@ -147,7 +177,68 @@ function viewAllRoles() {
   );
 }
 
-// Function to view all department names
+// OPTION 5 - Function for adding a new role
+function addRole() {
+  return new Promise((resolve, reject) => {
+    connection.query("SELECT * FROM department", function (err, res) {
+      if (err) {
+        reject(err);
+      } else {
+        let departmentArray = res.map((department) => ({
+          name: department.department_name,
+          value: department.id,
+        }));
+
+        inquirer
+          .prompt([
+            {
+              type: "input",
+              name: "title",
+              message: "What is the name of the role?",
+            },
+            {
+              type: "input",
+              name: "salary",
+              message: "What is the salary of the role?",
+            },
+            {
+              type: "list",
+              name: "department_id",
+              message: "Which department does the role belong to?",
+              choices: departmentArray,
+            },
+          ])
+          .then((res) => {
+            connection.query(
+              "INSERT INTO role SET ?",
+              {
+                title: res.title,
+                salary: res.salary,
+                department_id: res.department_id,
+              },
+              function (err, res) {
+                if (err) {
+                  reject(err);
+                } else {
+                  console.log("Role added!");
+                  resolve();
+                }
+              }
+            );
+          });
+      }
+    });
+  })
+    .then(() => {
+      loadMainPrompts();
+    })
+    .catch((error) => {
+      console.error("Error adding role:", error);
+      loadMainPrompts();
+    });
+}
+
+// OPTION 6 - Function to view all department names
 function viewAllDepartments() {
   connection.query("SELECT * FROM department", function (err, res) {
     if (err) throw err;
@@ -155,6 +246,32 @@ function viewAllDepartments() {
     loadMainPrompts();
   });
 }
+
+// OPTION 7 - Function for adding a new department
+function addDepartment() {
+  inquirer
+    .prompt([
+      {
+        type: "input",
+        name: "department_name",
+        message: "What is the name of the department?",
+      },
+    ])
+    .then((res) => {
+      connection.query(
+        "INSERT INTO department SET ?",
+        {
+          department_name: res.department_name,
+        },
+        function (err, res) {
+          if (err) throw err;
+          console.log("Department added!");
+          loadMainPrompts();
+        }
+      );
+    });
+}
+
 
 // Function to load the main prompts
 function loadMainPrompts() {
@@ -193,13 +310,13 @@ function loadMainPrompts() {
           viewAllRoles();
           break;
         case "Add role":
-          /*function for option 5*/ ;
+          addRole();
           break;
         case "View all departments":
           viewAllDepartments();
           break;
         case "Add department":
-          /*function for option 7*/ ;
+          addDepartment();
           break;
         case "Quit":
           quit();

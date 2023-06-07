@@ -272,6 +272,140 @@ function addDepartment() {
     });
 }
 
+// BONUS
+// Function that updates employee managers
+function updateEmployeeManager() {
+  connection.query("SELECT * FROM employee", function (err, res) {
+    if (err) throw err;
+    inquirer
+      .prompt([
+        {
+          type: "list",
+          name: "employee",
+          message: "Which employee would you like to update?",
+          choices: function () {
+            let employeeArray = [];
+            for (let i = 0; i < res.length; i++) {
+              employeeArray.push(res[i].first_name + " " + res[i].last_name);
+            }
+            return employeeArray;
+          },
+        },
+      ])
+      .then((res) => {
+        let employeeName = res.employee;
+        connection.query("SELECT * FROM employee", function (err, res) {
+          if (err) throw err;
+          inquirer
+            .prompt([
+              {
+                type: "list",
+                name: "manager",
+                message: "Who is the employee's new manager?",
+                choices: function () {
+                  let managerArray = [];
+                  for (let i = 0; i < res.length; i++) {
+                    managerArray.push({
+                      name: res[i].first_name + " " + res[i].last_name,
+                      value: res[i].id, // Use employee ID as the value
+                    });
+                  }
+                  return managerArray;
+                },
+              },
+            ])
+            .then((res) => {
+              let newManagerId = res.manager;
+              connection.query(
+                "UPDATE employee SET manager_id = ? WHERE CONCAT(first_name, ' ', last_name) = ?",
+                [newManagerId, employeeName],
+                function (err, res) {
+                  if (err) throw err;
+                  console.log("Employee manager updated!");
+                  loadMainPrompts();
+                }
+              );
+            });
+        });
+      });
+  });
+}
+
+// BONUS
+// Function to view employees by manager
+function viewEmployeesByManager() {
+  connection.query("SELECT * FROM employee", function (err, res) {
+    if (err) throw err;
+    inquirer
+      .prompt([
+        {
+          type: "list",
+          name: "manager",
+          message: "Which manager's employees would you like to view?",
+          choices: function () {
+            let managerArray = [];
+            for (let i = 0; i < res.length; i++) {
+              managerArray.push({
+                name: res[i].first_name + " " + res[i].last_name,
+                value: res[i].id, // Use employee ID as the value
+              });
+            }
+            return managerArray;
+          },
+        },
+      ])
+      .then((res) => {
+        let managerId = res.manager;
+        connection.query(
+          "SELECT employee.id, employee.first_name, employee.last_name, role.title, department.department_name, role.salary, CONCAT(manager.first_name, ' ', manager.last_name) AS manager FROM employee LEFT JOIN role ON employee.role_id = role.id LEFT JOIN department ON role.department_id = department.id LEFT JOIN employee manager ON manager.id = employee.manager_id WHERE employee.manager_id = ?",
+          [managerId],
+          function (err, res) {
+            if (err) throw err;
+            console.table(res);
+            loadMainPrompts();
+          }
+        );
+      });
+  });
+}
+
+// BONUS - Function to view employees by department
+function viewEmployeesByDepartment() {
+  connection.query("SELECT * FROM department", function (err, res) {
+    if (err) throw err;
+    inquirer
+      .prompt([
+        {
+          type: "list",
+          name: "department",
+          message: "Which department's employees would you like to view?",
+          choices: function () {
+            let departmentArray = [];
+            for (let i = 0; i < res.length; i++) {
+              departmentArray.push({
+                name: res[i].department_name,
+                value: res[i].id, // Use department ID as the value
+              });
+            }
+            return departmentArray;
+          },
+        },
+      ])
+      .then((res) => {
+        let departmentId = res.department;
+        connection.query(
+          "SELECT employee.id, employee.first_name, employee.last_name, role.title, department.department_name, role.salary, CONCAT(manager.first_name, ' ', manager.last_name) AS manager FROM employee LEFT JOIN role ON employee.role_id = role.id LEFT JOIN department ON role.department_id = department.id LEFT JOIN employee manager ON manager.id = employee.manager_id WHERE department.id = ?",
+          [departmentId],
+          function (err, res) {
+            if (err) throw err;
+            console.table(res);
+            loadMainPrompts();
+          }
+        );
+      });
+  });
+}
+
 
 // Function to load the main prompts
 function loadMainPrompts() {
@@ -290,6 +424,9 @@ function loadMainPrompts() {
           "View all departments",
           "Add department",
           "Quit",
+          "Bonus - Update employee managers",
+          "Bonus - View employees by manager",
+          "Bonus - View employees by department"
         ],
       },
     ])
@@ -317,6 +454,15 @@ function loadMainPrompts() {
           break;
         case "Add department":
           addDepartment();
+          break;
+        case "Bonus - Update employee managers":
+          updateEmployeeManager();
+          break;
+        case "Bonus - View employees by manager":
+          viewEmployeesByManager();
+          break;
+        case "Bonus - View employees by department":
+          viewEmployeesByDepartment();
           break;
         case "Quit":
           quit();

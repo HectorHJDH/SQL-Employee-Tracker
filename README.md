@@ -3,7 +3,7 @@
 ## Description
 This week 12 objective is to create a command-line application from scratch to manage a company's employee database, using Node.js, Inquirer, and MySQL.
 
-SQL Employee Tracker walkthrough video: 
+SQL Employee Tracker walkthrough video: https://drive.google.com/file/d/1zYYiTcKuWbnTtwUQJ1pKtsRkQbJYH-Jh/view
 
 ## Installation
 N/A
